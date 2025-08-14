@@ -30,22 +30,22 @@ function parseTradeHistory(): TradeHistory {
   $("tr").each((_, row) => {
     const sectionTitle = $(row).find("th div b").text().trim();
 
-    // Detect new section
+    // Start a new section
     if (sectionTitle && ["Positions", "Orders", "Deals"].includes(sectionTitle)) {
       currentSection = sectionTitle as keyof TradeHistory;
       currentHeaders = [];
       return;
     }
 
-    // Detect header row
-    if ($(row).find("td b").length && currentSection && currentSection !== "Summary") {
+    // Section header row
+    if ($(row).find("td b, th b").length && currentSection && currentSection !== "Summary") {
       currentHeaders = [];
       $(row)
         .find("td, th")
         .each((_, el) => {
+          if ($(el).hasClass("hidden")) return; // skip hidden headers
           const text = $(el).text().trim();
           const colspan = parseInt($(el).attr("colspan") || "1", 10);
-
           for (let i = 0; i < colspan; i++) {
             currentHeaders.push(text || "");
           }
@@ -60,10 +60,8 @@ function parseTradeHistory(): TradeHistory {
         .find("td")
         .each((_, el) => {
           if ($(el).hasClass("hidden")) return; // skip hidden cells
-
           const text = $(el).text().trim();
           const colspan = parseInt($(el).attr("colspan") || "1", 10);
-
           for (let i = 0; i < colspan; i++) {
             cells.push(text || "");
           }
@@ -79,12 +77,12 @@ function parseTradeHistory(): TradeHistory {
       return;
     }
 
-    // Detect summary section
+    // Detect Summary section
     if (!sectionTitle && currentSection !== "Summary" && $(row).text().includes("Balance:")) {
       currentSection = "Summary";
     }
 
-    // Parse summary
+    // Parse summary rows
     if (currentSection === "Summary") {
       const cells = $(row)
         .find("td")
