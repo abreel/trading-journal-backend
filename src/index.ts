@@ -20,7 +20,7 @@ interface TradeHistory {
 }
 
 function parseTradeHistory(): TradeHistory {
-  const filePath = path.join(__dirname, "trades.xlsx");
+  const filePath = path.join(__dirname, "ReportHistory-123259.xlsx");
   const workbook = XLSX.readFile(filePath);
 
   const results: TradeHistory = {
