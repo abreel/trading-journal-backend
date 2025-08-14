@@ -13,9 +13,12 @@ interface TradeHistory {
 }
 
 function parseTradeHistory(): TradeHistory {
-  const filePath = path.join(__dirname, "example.html");
+  const filePath = path.join(__dirname, "ReportHistory-100723.html");
+  console.log("path: ", filePath);
   const html = fs.readFileSync(filePath, "utf8");
   const $ = load(html);
+
+  console.log($("body").text().trim());
 
   const results: TradeHistory = {
     Positions: [],
