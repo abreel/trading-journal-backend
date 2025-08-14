@@ -109,6 +109,30 @@ app.get("/trade-history", (req: Request, res: Response) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send(`
+    <html>
+    <head>
+      <title>Trade History Viewer</title>
+    </head>
+    <body>
+      <h1>Trade History</h1>
+      <div id="app">Loading...</div>
+      <script>
+        fetch('/trade-history')
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('app').innerHTML = JSON.stringify(data, null, 2);
+          })
+          .catch(err => {
+            document.getElementById('app').innerHTML = 'Error: ' + err;
+          });
+      </script>
+    </body>
+    </html>
+  `);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
