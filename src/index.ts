@@ -1,9 +1,15 @@
 import express from "express";
 import path from "path";
 import XLSX from "xlsx";
+import cors from "cors";
 
 const app = express();
 const PORT = 4000;
+app.use(
+  cors({
+    origin: "https://fantastic-fortnight-j9jw5qr475phqxvx-3000.app.github.dev",
+  }),
+);
 
 interface TradeHistory {
   Positions: Record<string, string>[];
