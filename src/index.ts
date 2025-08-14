@@ -30,25 +30,44 @@ function parseTradeHistory(): TradeHistory {
   $("tr").each((_, row) => {
     const sectionTitle = $(row).find("th div b").text().trim();
 
+    // Detect new section
     if (sectionTitle && ["Positions", "Orders", "Deals"].includes(sectionTitle)) {
       currentSection = sectionTitle as keyof TradeHistory;
       currentHeaders = [];
       return;
     }
 
+    // Detect header row
     if ($(row).find("td b").length && currentSection && currentSection !== "Summary") {
-      currentHeaders = $(row)
+      currentHeaders = [];
+      $(row)
         .find("td, th")
-        .map((_, el) => $(el).text().trim())
-        .get();
+        .each((_, el) => {
+          const text = $(el).text().trim();
+          const colspan = parseInt($(el).attr("colspan") || "1", 10);
+
+          for (let i = 0; i < colspan; i++) {
+            currentHeaders.push(text || "");
+          }
+        });
       return;
     }
 
+    // Data rows
     if (currentSection && currentHeaders.length && currentSection !== "Summary") {
-      const cells = $(row)
+      const cells: string[] = [];
+      $(row)
         .find("td")
-        .map((_, el) => $(el).text().trim())
-        .get();
+        .each((_, el) => {
+          if ($(el).hasClass("hidden")) return; // skip hidden cells
+
+          const text = $(el).text().trim();
+          const colspan = parseInt($(el).attr("colspan") || "1", 10);
+
+          for (let i = 0; i < colspan; i++) {
+            cells.push(text || "");
+          }
+        });
 
       if (cells.length) {
         const rowData: Record<string, string> = {};
@@ -60,10 +79,12 @@ function parseTradeHistory(): TradeHistory {
       return;
     }
 
+    // Detect summary section
     if (!sectionTitle && currentSection !== "Summary" && $(row).text().includes("Balance:")) {
       currentSection = "Summary";
     }
 
+    // Parse summary
     if (currentSection === "Summary") {
       const cells = $(row)
         .find("td")
