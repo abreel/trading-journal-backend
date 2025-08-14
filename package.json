@@ -6,7 +6,9 @@
   "dependencies": {
     "cheerio": "^1.1.2",
     "express": "^5.1.0",
-    "nodemon": "^3.1.10"
+    "iconv": "^3.0.1",
+    "nodemon": "^3.1.10",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "dev": "nodemon",
