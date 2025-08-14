@@ -7,7 +7,9 @@ const app = express();
 const PORT = 4000;
 app.use(
   cors({
-    origin: "https://fantastic-fortnight-j9jw5qr475phqxvx-3000.app.github.dev",
+    origin: "https://fantastic-fortnight-j9jw5qr475phqxvx-3000.app.github.dev", // your frontend origin
+    methods: ["GET", "POST"],
+    credentials: true,
   }),
 );
 
