@@ -4,49 +4,84 @@ import path from "path";
 import { load } from "cheerio"; // <- correct import
 
 const app = express();
-const PORT = 3000;
-
-interface TableData {
-  headers: string[];
-  data: string[][];
+const PORT = 4000;
+interface TradeHistory {
+  Positions: Record<string, string>[];
+  Orders: Record<string, string>[];
+  Deals: Record<string, string>[];
+  Summary: Record<string, string>;
 }
 
-function parseTradeHistory(): Record<string, TableData> {
-  const filePath = path.join(__dirname, "trade_history.html");
+function parseTradeHistory(): TradeHistory {
+  const filePath = path.join(__dirname, "example.html");
   const html = fs.readFileSync(filePath, "utf8");
-  const $ = load(html); // <- use load here
+  const $ = load(html);
 
-  const sections = ["Positions", "Orders", "Deals"];
-  const result: Record<string, TableData> = {};
+  const results: TradeHistory = {
+    Positions: [],
+    Orders: [],
+    Deals: [],
+    Summary: {},
+  };
 
-  sections.forEach((section) => {
-    const header = $(`th:contains(${section})`);
-    if (!header.length) return;
+  let currentSection: keyof TradeHistory | null = null;
+  let currentHeaders: string[] = [];
 
-    const tableRows = header.closest("table").find("tr");
+  $("tr").each((_, row) => {
+    const sectionTitle = $(row).find("th div b").text().trim();
 
-    let headers: string[] = [];
-    const data: string[][] = [];
+    if (sectionTitle && ["Positions", "Orders", "Deals"].includes(sectionTitle)) {
+      currentSection = sectionTitle as keyof TradeHistory;
+      currentHeaders = [];
+      return;
+    }
 
-    tableRows.each((_, row) => {
-      const cells = $(row)
+    if ($(row).find("td b").length && currentSection && currentSection !== "Summary") {
+      currentHeaders = $(row)
         .find("td, th")
         .map((_, el) => $(el).text().trim())
         .get();
+      return;
+    }
 
-      if (!cells.length) return;
+    if (currentSection && currentHeaders.length && currentSection !== "Summary") {
+      const cells = $(row)
+        .find("td")
+        .map((_, el) => $(el).text().trim())
+        .get();
 
-      if (!headers.length && section !== "Deals") {
-        headers = cells;
-      } else {
-        data.push(cells);
+      if (cells.length) {
+        const rowData: Record<string, string> = {};
+        currentHeaders.forEach((header, i) => {
+          rowData[header] = cells[i] ?? "";
+        });
+        results[currentSection].push(rowData);
       }
-    });
+      return;
+    }
 
-    result[section.toLowerCase()] = { headers, data };
+    if (!sectionTitle && currentSection !== "Summary" && $(row).text().includes("Balance:")) {
+      currentSection = "Summary";
+    }
+
+    if (currentSection === "Summary") {
+      const cells = $(row)
+        .find("td")
+        .map((_, el) => $(el).text().trim())
+        .get()
+        .filter((t) => t !== "");
+
+      for (let i = 0; i < cells.length; i += 2) {
+        const key = cells[i];
+        const value = cells[i + 1];
+        if (key && key.endsWith(":") && value !== undefined) {
+          results.Summary[key.replace(/:$/, "")] = value;
+        }
+      }
+    }
   });
 
-  return result;
+  return results;
 }
 
 app.get("/trade-history", (req: Request, res: Response) => {
