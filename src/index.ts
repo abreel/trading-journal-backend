@@ -9,7 +9,7 @@ interface TradeHistory {
   Positions: Record<string, string>[];
   Orders: Record<string, string>[];
   Deals: Record<string, string>[];
-  Summary: Record<string, string>;
+  // Summary: Record<string, string>;
 }
 
 function parseTradeHistory(): TradeHistory {
@@ -21,7 +21,7 @@ function parseTradeHistory(): TradeHistory {
     Positions: [],
     Orders: [],
     Deals: [],
-    Summary: {},
+    // Summary: {},
   };
 
   let currentSection: keyof TradeHistory | null = null;
@@ -31,14 +31,19 @@ function parseTradeHistory(): TradeHistory {
     const sectionTitle = $(row).find("th div b").text().trim();
 
     // Start a new section
-    if (sectionTitle && ["Positions", "Orders", "Deals"].includes(sectionTitle)) {
-      currentSection = sectionTitle as keyof TradeHistory;
-      currentHeaders = [];
+    if (sectionTitle) {
+      if (["Positions", "Orders", "Deals"].includes(sectionTitle)) {
+        currentSection = sectionTitle as keyof TradeHistory;
+        currentHeaders = [];
+      } else {
+        // Any other section title = exit current section
+        currentSection = null;
+      }
       return;
     }
 
     // Section header row
-    if ($(row).find("td b, th b").length && currentSection && currentSection !== "Summary") {
+    if (currentSection && $(row).find("td b, th b").length) {
       currentHeaders = [];
       $(row)
         .find("td, th")
@@ -54,18 +59,23 @@ function parseTradeHistory(): TradeHistory {
     }
 
     // Data rows
-    if (currentSection && currentHeaders.length && currentSection !== "Summary") {
+    if (currentSection && currentHeaders.length) {
       const cells: string[] = [];
       $(row)
         .find("td")
         .each((_, el) => {
-          if ($(el).hasClass("hidden")) return; // skip hidden cells
+          if ($(el).hasClass("hidden")) return;
           const text = $(el).text().trim();
           const colspan = parseInt($(el).attr("colspan") || "1", 10);
           for (let i = 0; i < colspan; i++) {
             cells.push(text || "");
           }
         });
+
+      // Skip totals row
+      const isTotalsRow = cells.every((c) => c === "" || /^-?\d[\d\s.,%()-]*$/.test(c));
+
+      if (isTotalsRow) return;
 
       if (cells.length) {
         const rowData: Record<string, string> = {};
@@ -77,26 +87,9 @@ function parseTradeHistory(): TradeHistory {
       return;
     }
 
-    // Detect Summary section
-    if (!sectionTitle && currentSection !== "Summary" && $(row).text().includes("Balance:")) {
-      currentSection = "Summary";
-    }
-
-    // Parse summary rows
-    if (currentSection === "Summary") {
-      const cells = $(row)
-        .find("td")
-        .map((_, el) => $(el).text().trim())
-        .get()
-        .filter((t) => t !== "");
-
-      for (let i = 0; i < cells.length; i += 2) {
-        const key = cells[i];
-        const value = cells[i + 1];
-        if (key && key.endsWith(":") && value !== undefined) {
-          results.Summary[key.replace(/:$/, "")] = value;
-        }
-      }
+    // If we get here and we're in a section, but the row doesn't match, end section
+    if (currentSection && !$(row).find("td").length) {
+      currentSection = null;
     }
   });
 
